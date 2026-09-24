@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Учёт трат</title>
+<style>
+:root{
+  --ink:#1B2A3A; --paper:#F7F5F0; --line:#DDD8CC;
+  --accent:#4C7A5E; --accent2:#D96C55; --muted:#8A8272;
+  --card:#FFFFFF;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#EDE9E0; --paper:#141A17; --line:#2B342F;
+    --accent:#7FBE9C; --accent2:#E8917A; --muted:#8C9088; --card:#1C2320;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#EDE9E0; --paper:#141A17; --line:#2B342F;
+  --accent:#7FBE9C; --accent2:#E8917A; --muted:#8C9088; --card:#1C2320;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  min-height:100%;
+}
+header{
+  padding:20px 20px 8px; position:sticky; top:0; background:var(--paper);
+  padding-top:calc(20px + env(safe-area-inset-top,0px)); z-index:5;
+  border-bottom:1px solid var(--line);
+}
+h1{font-size:1.4rem; margin:0 0 2px; font-weight:700; letter-spacing:-0.02em}
+.sub{color:var(--muted); font-size:0.85rem; margin-bottom:14px}
+.tabs{display:flex; gap:6px; margin-bottom:12px; overflow-x:auto}
+.tab{
+  padding:7px 14px; border-radius:20px; border:1px solid var(--line);
+  background:transparent; color:var(--ink); font-size:0.85rem; cursor:pointer;
+  white-space:nowrap;
+}
+.tab.active{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+main{padding:16px 20px 100px; max-width:640px; margin:0 auto}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:16px; margin-bottom:14px;
+}
+.total{font-size:2rem; font-weight:700; letter-spacing:-0.02em}
+.total-label{color:var(--muted); font-size:0.85rem; margin-bottom:2px}
+.period-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
+.period-nav button{
+  background:none; border:1px solid var(--line); border-radius:8px; width:34px; height:34px;
+  font-size:1rem; color:var(--ink); cursor:pointer;
+}
+.period-label{font-weight:600}
+.range-row{display:flex; gap:8px; margin-top:10px}
+.range-row input{flex:1}
+.cat-row{
+  display:flex; justify-content:space-between; align-items:center; padding:9px 0;
+  border-bottom:1px solid var(--line); font-size:0.92rem;
+}
+.cat-row:last-child{border-bottom:none}
+.cat-bar-wrap{background:var(--line); border-radius:4px; height:5px; margin-top:5px; overflow:hidden}
+.cat-bar{height:100%; background:var(--accent); border-radius:4px}
+.cat-left{flex:1; padding-right:10px}
+.cat-amt{font-weight:600; white-space:nowrap}
+.tx{
+  display:flex; justify-content:space-between; align-items:center; padding:10px 0;
+  border-bottom:1px solid var(--line);
+}
+.tx:last-child{border-bottom:none}
+.tx-cat{font-weight:600; font-size:0.92rem}
+.tx-note{color:var(--muted); font-size:0.8rem}
+.tx-amt{font-weight:600}
+.tx-del{background:none; border:none; color:var(--accent2); font-size:1.1rem; cursor:pointer; padding:4px 8px}
+.empty{color:var(--muted); text-align:center; padding:30px 10px; font-size:0.9rem}
+label{display:block; font-size:0.8rem; color:var(--muted); margin-bottom:4px; margin-top:12px}
+label:first-child{margin-top:0}
+input,select{
+  width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+  background:var(--paper); color:var(--ink); font-size:0.95rem;
+}
+.fab{
+  position:fixed; right:20px; bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  width:56px; height:56px; border-radius:50%; background:var(--accent); color:#fff;
+  border:none; font-size:1.6rem; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; z-index:10;
+}
+.modal-bg{
+  position:fixed; inset:0; background:rgba(0,0,0,.45); display:none;
+  align-items:flex-end; justify-content:center; z-index:20;
+}
+.modal-bg.open{display:flex}
+.modal{
+  background:var(--paper); width:100%; max-width:480px; border-radius:18px 18px 0 0;
+  padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px)); max-height:85vh; overflow-y:auto;
+}
+.modal h2{margin:0 0 14px; font-size:1.1rem}
+.modal-actions{display:flex; gap:10px; margin-top:18px}
+.btn{
+  flex:1; padding:12px; border-radius:10px; border:none; font-size:0.95rem; cursor:pointer;
+}
+.btn-primary{background:var(--accent); color:#fff}
+.btn-secondary{background:var(--line); color:var(--ink)}
+.newcat{display:flex; gap:8px; margin-top:6px}
+.newcat input{flex:1}
+.newcat button{padding:0 14px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--ink)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Учёт трат</h1>
+  <div class="sub" id="rangeSub">—</div>
+  <div class="tabs">
+    <button class="tab active" data-view="month">Месяц</button>
+    <button class="tab" data-view="period">Период</button>
+    <button class="tab" data-view="list">Все траты</button>
+  </div>
+</header>
+<main>
+  <div id="monthView">
+    <div class="period-nav">
+      <button id="prevMonth">‹</button>
+      <div class="period-label" id="monthLabel">—</div>
+      <button id="nextMonth">›</button>
+    </div>
+    <div class="card"><div class="total-label">Потрачено</div><div class="total" id="monthTotal">0 ₽</div></div>
+    <div class="card" id="monthCats"></div>
+  </div>
+  <div id="periodView" style="display:none">
+    <div class="card">
+      <div class="range-row">
+        <div><label>С</label><input type="date" id="rangeFrom"></div>
+        <div><label>По</label><input type="date" id="rangeTo"></div>
+      </div>
+    </div>
+    <div class="card"><div class="total-label">Потрачено за период</div><div class="total" id="periodTotal">0 ₽</div></div>
+    <div class="card" id="periodCats"></div>
+  </div>
+  <div id="listView" style="display:none">
+    <div class="card" id="txList"></div>
+  </div>
+</main>
+<button class="fab" id="addBtn">+</button>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>Новая трата</h2>
+    <label>Дата</label>
+    <input type="date" id="fDate">
+    <label>Категория</label>
+    <select id="fCat"></select>
+    <div class="newcat">
+      <input type="text" id="fNewCat" placeholder="Новая категория">
+      <button id="fAddCat">Добавить</button>
+    </div>
+    <label>Сумма, ₽</label>
+    <input type="number" id="fAmt" inputmode="decimal" placeholder="0">
+    <label>Заметка (необязательно)</label>
+    <input type="text" id="fNote" placeholder="например, кофе">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="fCancel">Отмена</button>
+      <button class="btn btn-primary" id="fSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_CATS = ["Кафе и рестораны","Продукты","Транспорт","Жильё","Связь и подписки","Здоровье","Развлечения","Прочее"];
+let tx = [], cats = [];
+try{
+  tx = JSON.parse(localStorage.getItem('tx_data')||'[]');
+  cats = JSON.parse(localStorage.getItem('tx_cats')||'null') || DEFAULT_CATS.slice();
+}catch(e){ tx=[]; cats=DEFAULT_CATS.slice(); }
+
+function save(){
+  try{
+    localStorage.setItem('tx_data', JSON.stringify(tx));
+    localStorage.setItem('tx_cats', JSON.stringify(cats));
+  }catch(e){}
+}
+
+const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
+const monthNames = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+
+let curMonth = new Date(); curMonth.setDate(1);
+
+function catTotals(list){
+  const m = {};
+  list.forEach(t => m[t.cat] = (m[t.cat]||0) + t.amt);
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+
+function renderCats(container, list){
+  const totals = catTotals(list);
+  const max = totals.length ? totals[0][1] : 1;
+  if(!totals.length){ container.innerHTML = '<div class="empty">Нет трат за этот период</div>'; return; }
+  container.innerHTML = totals.map(([c,amt]) => `
+    <div class="cat-row"><div class="cat-left">${c}
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${(amt/max*100).toFixed(0)}%"></div></div>
+    </div><div class="cat-amt">${fmt(amt)}</div></div>
+  `).join('');
+}
+
+function renderMonth(){
+  const y = curMonth.getFullYear(), m = curMonth.getMonth();
+  document.getElementById('monthLabel').textContent = monthNames[m][0].toUpperCase()+monthNames[m].slice(1)+' '+y;
+  const list = tx.filter(t => { const d=new Date(t.date); return d.getFullYear()===y && d.getMonth()===m; });
+  const total = list.reduce((s,t)=>s+t.amt,0);
+  document.getElementById('monthTotal').textContent = fmt(total);
+  renderCats(document.getElementById('monthCats'), list);
+}
+
+function renderPeriod(){
+  const from = document.getElementById('rangeFrom').value;
+  const to = document.getElementById('rangeTo').value;
+  let list = tx;
+  if(from) list = list.filter(t => t.date >= from);
+  if(to) list = list.filter(t => t.date <= to);
+  const total = list.reduce((s,t)=>s+t.amt,0);
+  document.getElementById('periodTotal').textContent = fmt(total);
+  renderCats(document.getElementById('periodCats'), list);
+}
+
+function renderList(){
+  const sorted = tx.slice().sort((a,b)=> b.date.localeCompare(a.date) || b.id-a.id);
+  const el = document.getElementById('txList');
+  if(!sorted.length){ el.innerHTML='<div class="empty">Пока нет ни одной записи</div>'; return; }
+  el.innerHTML = sorted.map(t => `
+    <div class="tx"><div><div class="tx-cat">${t.cat}</div>
+      <div class="tx-note">${t.date}${t.note ? ' · '+t.note : ''}</div></div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="tx-amt">${fmt(t.amt)}</div>
+        <button class="tx-del" data-id="${t.id}">✕</button>
+      </div>
+    </div>
+  `).join('');
+  el.querySelectorAll('.tx-del').forEach(b => b.onclick = () => {
+    tx = tx.filter(t => t.id != b.dataset.id); save(); renderAll();
+  });
+}
+
+function renderAll(){ renderMonth(); renderPeriod(); renderList(); }
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    ['month','period','list'].forEach(v => document.getElementById(v+'View').style.display = (v===btn.dataset.view)?'block':'none');
+  };
+});
+
+document.getElementById('prevMonth').onclick = () => { curMonth.setMonth(curMonth.getMonth()-1); renderMonth(); };
+document.getElementById('nextMonth').onclick = () => { curMonth.setMonth(curMonth.getMonth()+1); renderMonth(); };
+document.getElementById('rangeFrom').onchange = renderPeriod;
+document.getElementById('rangeTo').onchange = renderPeriod;
+
+function fillCatSelect(){
+  const sel = document.getElementById('fCat');
+  sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+const modalBg = document.getElementById('modalBg');
+document.getElementById('addBtn').onclick = () => {
+  document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('fAmt').value = '';
+  document.getElementById('fNote').value = '';
+  document.getElementById('fNewCat').value = '';
+  fillCatSelect();
+  modalBg.classList.add('open');
+};
+document.getElementById('fCancel').onclick = () => modalBg.classList.remove('open');
+modalBg.onclick = (e) => { if(e.target===modalBg) modalBg.classList.remove('open'); };
+
+document.getElementById('fAddCat').onclick = () => {
+  const v = document.getElementById('fNewCat').value.trim();
+  if(v && !cats.includes(v)){ cats.push(v); save(); fillCatSelect(); document.getElementById('fCat').value = v; document.getElementById('fNewCat').value=''; }
+};
+
+document.getElementById('fSave').onclick = () => {
+  const date = document.getElementById('fDate').value;
+  const cat = document.getElementById('fCat').value;
+  const amt = parseFloat(document.getElementById('fAmt').value);
+  const note = document.getElementById('fNote').value.trim();
+  if(!date || !cat || !amt || amt<=0){ alert('Заполните дату, категорию и сумму'); return; }
+  tx.push({ id: Date.now(), date, cat, amt, note });
+  save();
+  modalBg.classList.remove('open');
+  renderAll();
+};
+
+// init
+document.getElementById('rangeTo').value = new Date().toISOString().slice(0,10);
+const firstDay = new Date(); firstDay.setDate(1);
+document.getElementById('rangeFrom').value = firstDay.toISOString().slice(0,10);
+renderAll();
+</script>
+</body>
+</html>
